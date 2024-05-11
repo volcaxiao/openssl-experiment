@@ -1,8 +1,8 @@
 use openssl::ssl::{Ssl, SslAcceptor, SslContext, SslFiletype, SslMethod};
 use tokio_openssl::SslStream;
+use std::io::{BufReader, Read};
 use std::pin::Pin;
 use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -19,6 +19,7 @@ use tokio::net::TcpListener;
 // async fn hello(_: Request<impl hyper::body::Body>) -> Result<Response<Bytes>> {
 //     Ok(Response::new(Bytes::from("Hello World!")))
 // }
+const ROOT_PATH: &str = "./SSL/WebServer";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -40,13 +41,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let acceptor = acceptor.clone();
                 tokio::spawn(async move {
                     let ssl = Ssl::new(acceptor.context()).unwrap();
-                    let mut tls_stream = SslStream::new(ssl, stream).unwrap();
-                    SslStream::accept(Pin::new(&mut tls_stream)).await.unwrap();
+
+                    let mut tls_stream = match SslStream::new(ssl, stream) {
+                        Ok(stream) => stream,
+                        Err(err) => {
+                            eprintln!("Error creating SSL stream: {}", err);
+                            return ;
+                        }
+                    };
+
+                    if let Err(error) = SslStream::accept(Pin::new(&mut tls_stream)).await {
+                        eprintln!("Error accepting connection: {}", error);
+                        return ;
+                    }
                     // let stream = TokioIo::new(stream);
                     let stream = TokioIo::new(tls_stream);
                     let conn = http1::Builder::new().serve_connection(stream, service_fn(handle));
                     if let Err(err) = conn.await {
                         eprintln!("Error serving connection: {}", err);
+                        return ;
                     }
                 });
             }
@@ -57,7 +70,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn handle(_: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
-    Ok(Response::new(Full::new(Bytes::from("Hello, World!"))))
+async fn handle(request: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
+    match *request.method() {
+        hyper::Method::GET => {
+            let path = request.uri().path();
+
+            let file_path = format!("{}/{}", ROOT_PATH, path);
+            let mut file = match std::fs::File::open(file_path) {
+                Ok(file) => file,
+                Err(_) => return Ok(Response::builder()
+                    .status(hyper::StatusCode::NOT_FOUND)
+                    .body(Full::new(Bytes::from("404 Not Found")))
+                    .unwrap()),
+            };
+            let mut buf = String::new();
+            let buf = match file.read_to_string(&mut buf) {
+                Ok(_) => buf,
+                Err(_) => return Ok(Response::builder()
+                    .status(hyper::StatusCode::NOT_FOUND)
+                    .body(Full::new(Bytes::from("404 Not Found")))
+                    .unwrap()),
+            };
+            let response = Response::new(Full::new(Bytes::from(buf)));
+            Ok(response)
+        },
+        _ => {
+            let response = Response::builder()
+                .status(hyper::StatusCode::NOT_FOUND)
+                .body(Full::new(Bytes::from("404 Not Found")))
+                .unwrap();
+            Ok(response)
+        }
+    }
 }
+
+
 
