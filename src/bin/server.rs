@@ -1,9 +1,17 @@
 use std::pin::Pin;
-use std::sync::Arc;
-use openssl::ssl::{SslAcceptor, SslContext, SslFiletype, SslMethod, Ssl};
-use tokio::net::{TcpListener, TcpStream};
+use openssl::ssl::{SslContext, SslFiletype, SslMethod, Ssl};
+use tokio::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_openssl::SslStream;
+
+use bytes::Bytes;
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
+use hyper::{Request, Response};
+
+// async fn hello(_: Request<impl hyper::body::Body>) -> Result<Response<Bytes>> {
+//     Ok(Response::new(Bytes::from("Hello World!")))
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,6 +35,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 					stream.as_mut().accept().await.unwrap();
 					match stream.as_mut().do_handshake().await {
 						Ok(_) => {
+							// if let Err(err) = http1::Builder::new()
+							// 	.serve_connection(stream, service_fn(hello))
+							// 	.await
+							// {
+							// 	println!("Error serving connection: {:?}", err);
+							// }
 							if let Err(err) = process_connection(stream.as_mut()).await {
 								eprintln!("Error processing connection: {}", err);
 							}
@@ -47,18 +61,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn process_connection<'a>(mut stream: Pin<&mut tokio_openssl::SslStream<tokio::net::TcpStream>>) -> Result<(), Box<dyn std::error::Error>> {
-    let mut buffer = [0; 1024];
-    
-    loop {
-        let n = stream.read(&mut buffer).await?;
-        if n == 0 {
-            return Ok(());
-        }
         
-        let response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello World!\n";
+	let response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello World!\n";
 
-        stream.write_all(response.as_bytes()).await?;
-		stream.flush().await?;
-		stream.shutdown().await.unwrap();
-    }
+	stream.write_all(response.as_bytes()).await?;
+	stream.flush().await?;
+	stream.shutdown().await.unwrap();
+	Ok(())
 }
