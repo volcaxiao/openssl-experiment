@@ -1,24 +1,19 @@
-use openssl::ssl::{Ssl, SslAcceptor, SslContext, SslFiletype, SslMethod};
+use openssl::ssl::{Ssl, SslAcceptor, SslFiletype, SslMethod};
 use tokio_openssl::SslStream;
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::pin::Pin;
 use std::sync::Arc;
 
 use std::convert::Infallible;
-use std::net::SocketAddr;
 
 use http_body_util::Full;
 use hyper::body::Bytes;
-use hyper::upgrade;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
-// async fn hello(_: Request<impl hyper::body::Body>) -> Result<Response<Bytes>> {
-//     Ok(Response::new(Bytes::from("Hello World!")))
-// }
 const ROOT_PATH: &str = "./SSL/WebServer";
 
 #[tokio::main]
