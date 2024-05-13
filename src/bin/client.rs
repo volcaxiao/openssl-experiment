@@ -1,10 +1,10 @@
 use http_body_util::Empty;
+use http_body_util::Full;
 use hyper::body::{Bytes, Incoming};
 use hyper::Request;
 use hyper::Response;
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpStream;
-
 #[allow(unused)]
 async fn get(
     url: &hyper::Uri,
@@ -64,14 +64,13 @@ async fn post(
 
     // 执行 HTTP/1.1 握手
     let (mut sender, _conn) = hyper::client::conn::http1::handshake(io).await?;
-
     // 构建 HTTP 请求
     let req = Request::builder()
         .method("POST")
         .uri(url)
         .header(hyper::header::HOST, authority.as_str())
         .header(hyper::header::CONTENT_TYPE, "application/json")
-        .body(Empty::<Bytes>::new())?;
+        .body(Full::new(body))?;
 
     // 发送请求并等待响应
     let res = sender.send_request(req).await?;
@@ -81,25 +80,5 @@ async fn post(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // This is where we will setup our HTTP client requests.
-    let url = "https://baidu.com".parse::<hyper::Uri>()?;
-    let host = url.host().expect("url has no host");
-    let port = url.port_u16().unwrap_or(80);
-    let address = format!("{}:{}", "127.0.0.1", 8443);
-    let stream = TcpStream::connect(address).await?;
-    let io = TokioIo::new(stream);
-    let (mut sender, conn) = hyper::client::conn::http1::handshake(io).await?;
-    tokio::task::spawn(async move {
-        if let Err(err) = conn.await {
-            println!("Connection failed: {:?}", err);
-        }
-    });
-    let authority = url.authority().unwrap().clone();
-    let req = Request::builder()
-        .uri(url)
-        .header(hyper::header::HOST, authority.as_str())
-        .body(Empty::<Bytes>::new())?;
-    let mut res = sender.send_request(req).await?;
-    println!("Response status: {}", res.status());
     Ok(())
 }
