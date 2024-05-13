@@ -3,8 +3,12 @@ use http_body_util::Full;
 use hyper::body::{Bytes, Incoming};
 use hyper::Request;
 use hyper::Response;
+use hyper_util::client::legacy::Client;
+use hyper_util::rt::TokioExecutor;
 use hyper_util::rt::TokioIo;
+use hyper_tls::HttpsConnector;
 use tokio::net::TcpStream;
+
 #[allow(unused)]
 async fn get(
     url: &hyper::Uri,
@@ -15,12 +19,8 @@ async fn get(
     let stream = TcpStream::connect(address).await?;
     let io = TokioIo::new(stream);
     let authority = url.authority().unwrap().clone();
-    let (mut sender, _conn) = hyper::client::conn::http1::handshake(io).await?;
-    let req = Request::builder()
-        .uri(url)
-        .header(hyper::header::HOST, authority.as_str())
-        .body(Empty::<Bytes>::new())?;
-    let res = sender.send_request(req).await?;
+    let client = Client::builder(TokioExecutor::new()).build::<_,Empty<Bytes>>(HttpsConnector::new());
+    let res = client.get(url.clone()).await?;
     Ok(res)
 }
 
@@ -80,5 +80,7 @@ async fn post(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let res = get(&"https://baidu.com".parse().unwrap()).await?;
+    println!("{:?}", res);
     Ok(())
 }

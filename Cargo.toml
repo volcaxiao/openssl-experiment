@@ -19,3 +19,4 @@ http = "1"
 http-body-util = "0.1"
 hyper-util = { version = "0.1", features = ["full"] }
 anyhow = "1.0.83"
+hyper-tls = "0.6.0"
