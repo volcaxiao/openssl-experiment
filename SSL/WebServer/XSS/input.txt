@@ -1,0 +1,1 @@
+<img src=document.domain onerror=alert("XSS")>
