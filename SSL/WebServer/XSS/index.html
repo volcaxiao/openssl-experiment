@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
 	<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +7,12 @@
 </head>
 <body>
     <h1>欢迎来到XSS测试页面</h1>
+    <h2>提交窗口</h2>
+    <textarea id="inputText" name="inputText" rows="10" cols="80" style="display: block;"></textarea>
+    <br>
     <button id="safe-submit" >safe 提交</button>
     <button id="unsafe-submit">unsafe 提交</button>
-    <textarea id="inputText" name="inputText" rows="10" cols="80" style="display: block; margin-top: 5px;"></textarea>
+    <h2>内容窗口</h2>
     <p id="content"></p>
     <script src="/XSS/handle.js"></script>
 </body>

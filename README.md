@@ -18,9 +18,9 @@ client能够支持：
 ## 功能测试
 
 - 按照指导书的步骤，可以看到，客户机浏览器中已经得到了Server的证书。
-- ![alt text](image.png)
+- ![alt text](docs/asserts/image.png)
 - 在主机上运行Wireshark抓到的报文如下：
-- ![alt text](image-1.png)
+- ![alt text](docs/asserts/image-1.png)
 
 ## 实验分析
 
@@ -46,7 +46,7 @@ client能够支持：
    - **加密的握手消息：** 客户端发送一个 `Finished` 消息，包含一个验证握手消息的哈希值，使用之前协商好的对称密钥进行加密。
 
 4. **New Session Ticket, Change Cipher Spec, Encrypted Handshake Message 报文 (长度为 284 字节)：**
-   - **新会话票据：** 服务器发送一个新的会话票据给客户端，用于后续的会话恢复。
+   - **新会话票据：** 服务器发送一个新会话票据给客户端，用于后续的会话恢复。
    - **改变密码规范 (Change Cipher Spec) 消息：** 服务器发送一个特殊的消息，通知客户端之后的通信会使用协商好的密钥。
    - **加密的握手消息：** 服务器发送一个 `Finished` 消息，包含一个验证握手消息的哈希值，使用之前协商好的对称密钥进行加密。
 

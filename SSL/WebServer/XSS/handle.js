@@ -2,7 +2,7 @@ function loadContent() {
 	fetch('/XSS/input')
 		.then(response => response.text())
 		.then(data => {
-			document.getElementById('content').innerHTML = data;
+			document.getElementById('content').innerHTML = data || '无内容';
 		}
 	);
 }

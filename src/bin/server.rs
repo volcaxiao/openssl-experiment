@@ -16,16 +16,18 @@ use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
 const ROOT_PATH: &str = "./SSL/WebServer";
+const CERT_PATH: &str = "./SSL/Cert";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 加载 SSL 证书和私钥
     let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
     acceptor
-        .set_private_key_file("key.pem", SslFiletype::PEM)
+        .set_private_key_file(format!("{}/ca.key", CERT_PATH), SslFiletype::PEM)
         .unwrap();
-    acceptor.set_certificate_chain_file("cert.pem").unwrap();
+    acceptor.set_certificate_chain_file(format!("{}/ca.crt", CERT_PATH)).unwrap();
     acceptor.check_private_key().unwrap();
+    // acceptor.set_min_proto_version(Some(openssl::ssl::SslVersion::TLS1_3)).unwrap();
     let acceptor = Arc::new(acceptor.build());
     // let ssl = Ssl::new(ssl_ctx.as_ref()).unwrap();
 
@@ -103,7 +105,6 @@ async fn handle_get(request: Request<hyper::body::Incoming>) -> Result<Response<
                     // 创建响应并添加 CSP 头
                     let mut response = Response::new(Full::new(Bytes::from(buf)));
                     response.headers_mut().insert(header::CONTENT_SECURITY_POLICY, csp_header);
-
                     Ok(response)
                 },
                 Err(_) => {

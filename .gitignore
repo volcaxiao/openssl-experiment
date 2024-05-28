@@ -1,2 +1,5 @@
 target
 *.pem
+.idea
+.vscode
+SSL/Cert/*
