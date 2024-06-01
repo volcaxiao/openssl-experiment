@@ -92,18 +92,21 @@ fn read_file(path: &str) -> Result<String, std::io::Error> {
 // 处理 Get 请求, 返回对应路径的文件内容
 async fn handle_get(request: Request<hyper::body::Incoming>) -> Result<Response<Full<Bytes>>, Infallible> {
     let path = request.uri().path();
+    // 定义一个基本的 CSP 策略字符串, 允许从当前源加载, 并且只允许内联样式
+    let csp_header_value = "default-src 'self'; script-src 'self';";
+    let csp_header = HeaderValue::from_str(csp_header_value)
+        .expect("Failed to convert CSP string into HeaderValue");
+    // 定义一个cookie，供会话劫持的演练
+    let cookie = HeaderValue::from_str("session=iamaSess")
+        .expect("Failed to convert cookie string into HeaderValue");
     match path {
         "/XSS/safe" => {
-           // 定义一个基本的 CSP 策略字符串, 允许从当前源加载, 并且只允许内联样式
-            let csp_header_value = "default-src 'self'; script-src 'self';";
-            let csp_header = HeaderValue::from_str(csp_header_value)
-                .expect("Failed to convert CSP string into HeaderValue");
-
             let file_path = format!("{}/XSS/index.html", ROOT_PATH);
             match read_file(file_path.as_str()) {
                 Ok(buf) => {
                     // 创建响应并添加 CSP 头
                     let mut response = Response::new(Full::new(Bytes::from(buf)));
+                    response.headers_mut().insert(header::SET_COOKIE, cookie);
                     response.headers_mut().insert(header::CONTENT_SECURITY_POLICY, csp_header);
                     Ok(response)
                 },
@@ -117,7 +120,8 @@ async fn handle_get(request: Request<hyper::body::Incoming>) -> Result<Response<
             let file_path = format!("{}/XSS/index.html", ROOT_PATH);
             match read_file(file_path.as_str()) {
                 Ok(buf) => {
-                    let response = Response::new(Full::new(Bytes::from(buf)));
+                    let mut response = Response::new(Full::new(Bytes::from(buf)));
+                    response.headers_mut().insert(header::SET_COOKIE, cookie);
                     Ok(response)
                 },
                 Err(_) => {
@@ -171,7 +175,6 @@ async fn handle_post(request: Request<hyper::body::Incoming>) -> Result<Response
 
     let body = request.into_body().frame().await.unwrap().unwrap().into_data().unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
-    println!("body: {}", body);
     match path.as_str() {
         "/XSS/safe" => {
             let file_path = format!("{}/XSS/input.txt", ROOT_PATH);
