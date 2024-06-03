@@ -29,3 +29,4 @@ hyper-util = { version = "0.1", features = ["full"] }
 anyhow = "1.0.83"
 hyper-tls = "0.6.0"
 ammonia = "4.0.0"
+reqwest = "0.12.4"

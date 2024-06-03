@@ -29,9 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .set_certificate_chain_file(format!("{}/ca.crt", CERT_PATH))
         .unwrap();
     acceptor.check_private_key().unwrap();
-    // acceptor.set_min_proto_version(Some(openssl::ssl::SslVersion::TLS1_3)).unwrap();
     let acceptor = Arc::new(acceptor.build());
-    // let ssl = Ssl::new(ssl_ctx.as_ref()).unwrap();
 
     // 监听端口
     let listener = TcpListener::bind("127.0.0.1:8443").await?;
