@@ -96,7 +96,3 @@ openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca_cert.pem
 ```
 
 5. **使用证书**：在应用程序中加载证书和私钥，建立 SSL/TLS 连接。
-
-```rust
-
-```

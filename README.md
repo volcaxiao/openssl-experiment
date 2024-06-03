@@ -1,65 +1,81 @@
 # openssl-experiment
 
-小组在中期使用Rust语言实现了一版简单的server与client。
+这是一个基于Openssl的Web安全实验项目。主要工作如下：
+1. 使用rust实现了一个简单的Http Web服务器，实现了有XSS漏洞的前端界面。
+2. 使用openssl库新建了一个CA，签发了一个证书。
+3. 将证书用于Web服务器，升级为Https Web服务器。
+4. 使用rust语言实现了一个client程序，用于访问Https Web服务器。
+6. 将client程序改写，可以自动填充XSS攻击脚本。
+7. 设计了一个会话劫持的实验，用于演示XSS攻击的危害。
 
-> 这是我们GitHub仓库的地址：[openssl-experiment](https://github.com/volcaxiao/openssl-experiment)
+## 文件说明
 
-其中，server能够支持：
-1. 加载 SSL 证书和私钥。
-2. 监听特定的端口。
-3. 处理Get请求。（其他请求暂时返回404）
+- 文档：
+   - `docs/SSL.md`：SSL协议的介绍以及实现
+   - `docs/XSS.md`：XSS攻击的介绍以及实现
+   - `docs/server.md`：服务端程序的介绍
+   - `docs/client.md`：客户端程序的介绍
+   - `docs/会话劫持.md`：会话劫持的介绍以及实现
 
-client能够支持：
-1. 与server建立SSL连接。
-2. 发送Get请求。
+- 服务端程序：
+   - `src/bin/server.rs`：Https服务器程序
+   - `src/bin/client.rs`：Https客户端程序
+   - `src/bin/sess-listener.rs`：会话监听程序
 
-并且在课程的虚拟机A上运行Server程序，在虚拟机B上运行Client程序。
+- 证书生成程序：
+   - `scripts/gen-pem.sh`：生成CA证书
 
-## 功能测试
+- 前端界面：
+   - `SSL/WebServer/XSS/index.html`：前端界面
+   - `SSL/WebServer/XSS/handle.js`：前端界面的处理脚本
 
+- 会话劫持实验：   
+   - `SSL/WebServer/XSS/hook.js`：会话劫持攻击脚本
+   - `SSL/WebServer/XSS/example.txt`：会话劫持示例
+   - `SSL/WebServer/XSS/session.txt`：劫持到的cookie
+
+## 运行环境
+
+- `cargo 1.79.0-nightly`
+- `OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)`
+
+## 运行方法
+
+- 在根目录使用下列命令可以生成证书：
+
+```bash
+./scripts/gen-pem.sh
+```
+
+- 在根目录使用下列命令可以分别启动服务端、客户端、会话监听程序和XSS攻击程序：
+
+```bash
+cargo run --bin [server | client | sess-listener | xss-attack]
+```
+
+## 实验结果
+
+### 基础结果展示
+
+- 首先是实现好的Https服务器，可以在浏览器中访问到：
+- 使用脚本生成证书的结果如下：
+![alt text](docs/asserts/证书生成.png)
 - 按照指导书的步骤，可以看到，客户机浏览器中已经得到了Server的证书。
-- ![alt text](docs/asserts/image.png)
+![alt text](docs/asserts/image.png)
 - 在主机上运行Wireshark抓到的报文如下：
-- ![alt text](docs/asserts/image-1.png)
+![alt text](docs/asserts/image-1.png)
 
-## 实验分析
+### XSS攻击结果
 
-- 现在对抓取到的报文进行分析：
-- 握手阶段有4条报文：
+- 然后是实现好的XSS攻击界面，可以在浏览器中访问到：
+- 浏览器访问`https://127.0.0.1/XSS/unsafe`，可以看到XSS攻击界面。
+![alt text](docs/asserts/XSS-攻击-1.png)
+- 而在`https://127.0.0.1/XSS/safe`中，攻击是无效的。
 
-1. **Client Hello 报文 (长度为 583 字节)：**
-   - **TLS 版本：** 报文开始的几个字节表示 TLS 协议的版本。
-   - **随机数：** 在 TLS 握手中，客户端会生成一个随机数，并在 `Client Hello` 报文中发送给服务器。这个随机数在后续的密钥协商中会被用到。
-   - **支持的密码套件列表：** 客户端支持的加密算法和密钥交换算法的列表。每个密码套件由一个加密算法、一个密钥交换算法和一个消息认证码 (MAC) 算法组成。
-   - **支持的压缩算法列表：** 客户端支持的数据压缩算法的列表。在 TLS 握手中，通常不使用压缩算法，因为压缩会导致安全风险。
+### 会话劫持结果
 
-2. **Server Hello 报文 (长度为 1348 字节)：**
-   - **TLS 版本：** 与客户端支持的 TLS 版本相匹配。
-   - **选择的密码套件：** 服务器从客户端提供的列表中选择一个最合适的密码套件，用于后续的通信。
-   - **选择的压缩算法：** 服务器从客户端提供的列表中选择一个数据压缩算法。
-   - **服务器随机数：** 服务器也生成一个随机数，并在 `Server Hello` 报文中发送给客户端。
-   - **服务器证书：** 服务器在 `Server Hello` 报文中发送自己的数字证书，用于证明自己的身份。证书中包含了服务器的公钥。
+- 最后就是关于会话劫持的实验，在`unsafe`版提交恶意脚本：
+![alt text](docs/asserts/会话劫持-1.png)
 
-3. **Client Key Exchange, Change Cipher Spec, Encrypted Handshake Message 报文 (长度为 151 字节)：**
-   - **客户端密钥交换信息：** 客户端生成一个用于对称加密通信的随机密钥，并使用服务器的公钥加密这个密钥。
-   - **改变密码规范 (Change Cipher Spec) 消息：** 客户端发送一个特殊的消息，通知服务器之后的通信会使用协商好的密钥。
-   - **加密的握手消息：** 客户端发送一个 `Finished` 消息，包含一个验证握手消息的哈希值，使用之前协商好的对称密钥进行加密。
-
-4. **New Session Ticket, Change Cipher Spec, Encrypted Handshake Message 报文 (长度为 284 字节)：**
-   - **新会话票据：** 服务器发送一个新会话票据给客户端，用于后续的会话恢复。
-   - **改变密码规范 (Change Cipher Spec) 消息：** 服务器发送一个特殊的消息，通知客户端之后的通信会使用协商好的密钥。
-   - **加密的握手消息：** 服务器发送一个 `Finished` 消息，包含一个验证握手消息的哈希值，使用之前协商好的对称密钥进行加密。
-
-- 而后4条application data就是客户端与服务器之间的请求与响应，但是是加密之后的。
-
-## 后期计划
-
-- 将Server的Tls协议支持Tlsv1.3
-- 继续实现Server Client的其他功能。
-- 完成跨站脚本攻击（XSS），会话劫持，DOS攻击的攻防演练。
-
-## 小组分工
-
-- 罗皓天：实现Server程序。
-- 戴波：实现Client程序。
-- 肖灿：撰写文档，实验分析，配置openssl证书与链接。
+- 在监听服务器可以看到被劫持的cookie：
+![alt text](docs/asserts/会话劫持-2.png)
