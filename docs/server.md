@@ -22,6 +22,8 @@
 
 ## 实现
 
+![server.drawio](asserts/server.drawio.png)
+
 ### 加载 SSL 证书和密钥
 
 ```rust
